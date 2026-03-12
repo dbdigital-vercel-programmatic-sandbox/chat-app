@@ -7,7 +7,7 @@ import {
   AlertCircleIcon,
   ArrowLeftIcon,
   BotIcon,
-  CrownIcon,
+  MenuIcon,
   MessageSquareIcon,
   PlusIcon,
 } from "lucide-react"
@@ -39,7 +39,13 @@ import {
 } from "@/components/ai-elements/prompt-input"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import {
   buildChatHeaders,
   createClientMessageId,
@@ -222,6 +228,8 @@ export default function Page() {
   >(null)
   const [isBootstrapping, setIsBootstrapping] = useState(true)
   const [chatErrorDetails, setChatErrorDetails] = useState<string | null>(null)
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false)
 
   const { messages, setMessages, sendMessage, status, stop, error } = useChat({
     onError: (chatError) => {
@@ -384,6 +392,40 @@ export default function Page() {
     []
   )
 
+  const handleBackToHeroes = useCallback(() => {
+    setSelectedHero(null)
+    setConversations([])
+    setSelectedConversationId(null)
+    setMessages([])
+    setIsMobileSidebarOpen(false)
+  }, [setMessages])
+
+  const handleSelectConversation = useCallback((conversationId: string) => {
+    setSelectedConversationId(conversationId)
+    setIsMobileSidebarOpen(false)
+  }, [])
+
+  const handleCreateConversation = useCallback(async () => {
+    if (!userId || !selectedHero || isCreatingConversation) {
+      return
+    }
+
+    setIsCreatingConversation(true)
+    setChatErrorDetails(null)
+
+    try {
+      const conversation = await createChat(userId, selectedHero)
+      setConversations((previous) => [conversation, ...previous])
+      setSelectedConversationId(conversation.id)
+      setMessages([])
+      setIsMobileSidebarOpen(false)
+    } catch (createError) {
+      setChatErrorDetails(formatChatError(createError))
+    } finally {
+      setIsCreatingConversation(false)
+    }
+  }, [isCreatingConversation, selectedHero, setMessages, userId])
+
   if (!selectedHero) {
     return (
       <main className="cinematic-bg mx-auto flex min-h-svh w-full max-w-6xl flex-col gap-6 px-4 py-8 md:px-8 md:py-10">
@@ -482,111 +524,208 @@ export default function Page() {
   }
 
   return (
-    <main className="cinematic-bg mx-auto flex min-h-svh w-full max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:px-8">
-      <Card className="w-full border-white/15 bg-black/45 text-white backdrop-blur-sm md:w-80 md:shrink-0">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base tracking-wide text-white/90 uppercase">
-            Mission Log
-          </CardTitle>
-          <Button
-            className="mt-2 w-fit border-white/20 bg-white/5 text-white hover:bg-white/12"
-            onClick={() => {
-              setSelectedHero(null)
-              setConversations([])
-              setSelectedConversationId(null)
-              setMessages([])
-            }}
-            size="sm"
-            variant="outline"
-          >
-            <ArrowLeftIcon className="size-4" />
-            Heroes
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <Button
-            className="w-full border-white/25 bg-white/10 text-white hover:bg-white/20"
-            disabled={!userId || isBootstrapping || !selectedHero}
-            onClick={async () => {
-              if (!userId || !selectedHero) {
-                return
+    <main className="cinematic-bg mx-auto flex min-h-svh w-full max-w-6xl gap-4 px-4 py-6 md:px-8">
+      <aside className="hidden w-80 shrink-0 md:block">
+        <div className="relative flex h-[84svh] flex-col overflow-hidden rounded-2xl border border-white/15 bg-black/75 text-white">
+          {selectedHeroMeta ? (
+            <Image
+              alt={`${selectedHeroMeta.label} sidebar`}
+              className="object-cover"
+              fill
+              onError={() => setHeroImageEvent(selectedHeroMeta.id, "error")}
+              onLoad={() => setHeroImageEvent(selectedHeroMeta.id, "load")}
+              sizes="320px"
+              src={
+                heroImageStates[selectedHeroMeta.id].status === "failed"
+                  ? selectedHeroMeta.fallbackImage
+                  : selectedHeroMeta.imageUrl
               }
-
-              const conversation = await createChat(userId, selectedHero)
-              setConversations((previous) => [conversation, ...previous])
-              setSelectedConversationId(conversation.id)
-              setMessages([])
-            }}
-            variant="secondary"
-          >
-            <PlusIcon className="size-4" />
-            New chat
-          </Button>
-
-          <div className="flex max-h-[50svh] flex-col gap-2 overflow-y-auto pr-1 md:max-h-[70svh]">
-            {conversations.map((conversation) => {
-              const isActive = conversation.id === selectedConversationId
-
-              return (
-                <Button
-                  className={cn(
-                    "justify-start truncate border border-transparent text-white/90",
-                    isActive
-                      ? "border-white/25 bg-white/20 text-white"
-                      : "bg-transparent hover:bg-white/10"
-                  )}
-                  key={conversation.id}
-                  onClick={() => setSelectedConversationId(conversation.id)}
-                  variant="ghost"
-                >
-                  <MessageSquareIcon className="size-4" />
-                  <span className="truncate">{conversation.title}</span>
-                </Button>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="flex min-h-[72svh] flex-1 flex-col overflow-hidden border-white/15 bg-black/55 backdrop-blur-sm">
-        <CardContent className="flex min-h-0 flex-1 flex-col gap-3 p-3 md:p-4">
-          <header className="relative overflow-hidden rounded-2xl border border-white/15 p-4 md:p-6">
-            {selectedHeroMeta ? (
-              <Image
-                alt={`${selectedHeroMeta.label} banner`}
-                className="object-cover"
-                fill
-                onError={() => setHeroImageEvent(selectedHeroMeta.id, "error")}
-                onLoad={() => setHeroImageEvent(selectedHeroMeta.id, "load")}
-                sizes="(max-width: 768px) 100vw, 70vw"
-                src={
-                  heroImageStates[selectedHeroMeta.id].status === "failed"
-                    ? selectedHeroMeta.fallbackImage
-                    : selectedHeroMeta.imageUrl
-                }
-              />
-            ) : null}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/35" />
-            <div className="relative z-10 flex items-center justify-between gap-3">
-              <div className="space-y-1">
-                <p className="text-xs tracking-[0.26em] text-white/70 uppercase">
-                  Active Hero
-                </p>
-                <h1 className="[font-family:var(--font-display)] text-2xl font-semibold tracking-tight text-white md:text-3xl">
-                  Chat with {selectedHeroMeta?.label}
-                </h1>
-                <p className="text-xs text-white/70 md:text-sm">
-                  {selectedHeroMeta?.tagline}
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs text-white">
-                <CrownIcon className="size-3" />
-                Cinematic mode
-              </span>
-            </div>
-            <p className="relative z-10 mt-3 text-sm text-white/75">
-              {selectedConversationLabel ?? "Loading conversation..."}
+            />
+          ) : null}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/75 to-black/95" />
+          <div className="relative z-10 flex h-full flex-col p-4">
+            <p className="text-[11px] tracking-[0.25em] text-white/70 uppercase">
+              Mission panel
             </p>
+            <h2 className="mt-2 [font-family:var(--font-display)] text-4xl leading-none text-white">
+              Mission Log
+            </h2>
+            <p className="mt-2 text-xs text-white/75">
+              {selectedHeroMeta?.tagline}
+            </p>
+
+            <div className="mt-4 flex gap-2">
+              <Button
+                className="border-white/25 bg-black/35 text-white hover:bg-black/50"
+                onClick={handleBackToHeroes}
+                size="sm"
+                variant="outline"
+              >
+                <ArrowLeftIcon className="size-4" />
+                Heroes
+              </Button>
+              <Button
+                className="flex-1 border-white/25 bg-white/12 text-white hover:bg-white/20"
+                disabled={
+                  !userId ||
+                  isBootstrapping ||
+                  !selectedHero ||
+                  isCreatingConversation
+                }
+                onClick={handleCreateConversation}
+                variant="secondary"
+              >
+                <PlusIcon className="size-4" />
+                {isCreatingConversation ? "Creating..." : "New chat"}
+              </Button>
+            </div>
+
+            <div className="mt-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+              {conversations.map((conversation) => {
+                const isActive = conversation.id === selectedConversationId
+
+                return (
+                  <button
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left transition focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none",
+                      isActive
+                        ? "border-white/30 bg-white/18 text-white"
+                        : "border-white/10 bg-black/28 text-white/88 hover:bg-black/40"
+                    )}
+                    key={conversation.id}
+                    onClick={() => handleSelectConversation(conversation.id)}
+                    type="button"
+                  >
+                    <MessageSquareIcon className="mt-0.5 size-4 shrink-0" />
+                    <span className="truncate text-sm">
+                      {conversation.title}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+        <SheetContent
+          side="left"
+          className="w-[88vw] border-white/10 bg-transparent p-0 sm:max-w-[360px]"
+          showCloseButton={false}
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Chats</SheetTitle>
+          </SheetHeader>
+          <div className="h-full p-4">
+            <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/15 bg-black/75 text-white">
+              {selectedHeroMeta ? (
+                <Image
+                  alt={`${selectedHeroMeta.label} sidebar`}
+                  className="object-cover"
+                  fill
+                  onError={() =>
+                    setHeroImageEvent(selectedHeroMeta.id, "error")
+                  }
+                  onLoad={() => setHeroImageEvent(selectedHeroMeta.id, "load")}
+                  sizes="(max-width: 768px) 88vw, 360px"
+                  src={
+                    heroImageStates[selectedHeroMeta.id].status === "failed"
+                      ? selectedHeroMeta.fallbackImage
+                      : selectedHeroMeta.imageUrl
+                  }
+                />
+              ) : null}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/75 to-black/95" />
+              <div className="relative z-10 flex h-full flex-col p-4">
+                <p className="text-[11px] tracking-[0.24em] text-white/70 uppercase">
+                  Mission panel
+                </p>
+                <h2 className="mt-2 [font-family:var(--font-display)] text-4xl leading-none text-white">
+                  Mission Log
+                </h2>
+
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    className="border-white/25 bg-black/35 text-white hover:bg-black/50"
+                    onClick={handleBackToHeroes}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <ArrowLeftIcon className="size-4" />
+                    Heroes
+                  </Button>
+                  <Button
+                    className="flex-1 border-white/25 bg-white/12 text-white hover:bg-white/20"
+                    disabled={
+                      !userId ||
+                      isBootstrapping ||
+                      !selectedHero ||
+                      isCreatingConversation
+                    }
+                    onClick={handleCreateConversation}
+                    variant="secondary"
+                  >
+                    <PlusIcon className="size-4" />
+                    {isCreatingConversation ? "Creating..." : "New chat"}
+                  </Button>
+                </div>
+
+                <div className="mt-4 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+                  {conversations.map((conversation) => {
+                    const isActive = conversation.id === selectedConversationId
+
+                    return (
+                      <button
+                        className={cn(
+                          "flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left transition focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none",
+                          isActive
+                            ? "border-white/30 bg-white/18 text-white"
+                            : "border-white/10 bg-black/28 text-white/88 hover:bg-black/40"
+                        )}
+                        key={conversation.id}
+                        onClick={() =>
+                          handleSelectConversation(conversation.id)
+                        }
+                        type="button"
+                      >
+                        <MessageSquareIcon className="mt-0.5 size-4 shrink-0" />
+                        <span className="truncate text-sm">
+                          {conversation.title}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Card className="flex min-h-[84svh] flex-1 flex-col overflow-hidden border-white/15 bg-black/65 backdrop-blur-sm">
+        <CardContent className="flex min-h-0 flex-1 flex-col gap-3 p-3 md:p-4">
+          <header className="flex items-center justify-between rounded-2xl border border-white/15 bg-black/30 px-4 py-3 text-white">
+            <div className="min-w-0">
+              <p className="text-[11px] tracking-[0.2em] text-white/65 uppercase">
+                Active hero
+              </p>
+              <h1 className="truncate [font-family:var(--font-display)] text-3xl leading-none text-white">
+                {selectedHeroMeta?.label}
+              </h1>
+              <p className="truncate pt-1 text-xs text-white/75">
+                {selectedConversationLabel ?? "Loading conversation..."}
+              </p>
+            </div>
+            <Button
+              className="border-white/25 bg-black/35 text-white hover:bg-black/50 md:hidden"
+              onClick={() => setIsMobileSidebarOpen(true)}
+              size="sm"
+              variant="outline"
+            >
+              <MenuIcon className="size-4" />
+              Chats
+            </Button>
           </header>
 
           {error || chatErrorDetails ? (
