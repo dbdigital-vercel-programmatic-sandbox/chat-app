@@ -400,7 +400,7 @@ export default function Page() {
           </p>
         </header>
 
-        <section className="grid gap-5 md:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
           {HERO_OPTIONS.map((hero) => {
             const imageState = heroImageStates[hero.id]
             const imageSrc =
@@ -411,7 +411,7 @@ export default function Page() {
             return (
               <button
                 className={cn(
-                  "group relative isolate h-[29rem] overflow-hidden rounded-3xl border border-white/20 text-left transition duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none md:h-[32rem]",
+                  "group relative isolate h-[23rem] overflow-hidden rounded-3xl border border-white/20 text-left transition duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none md:h-[26rem]",
                   "hover:-translate-y-1.5 hover:scale-[1.02] hover:border-white/40",
                   "disabled:cursor-not-allowed disabled:opacity-60"
                 )}
@@ -433,7 +433,7 @@ export default function Page() {
                   onError={() => setHeroImageEvent(hero.id, "error")}
                   onLoad={() => setHeroImageEvent(hero.id, "load")}
                   priority
-                  sizes="(max-width: 768px) 100vw, 33vw"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 33vw, 25vw"
                   src={imageSrc}
                 />
 

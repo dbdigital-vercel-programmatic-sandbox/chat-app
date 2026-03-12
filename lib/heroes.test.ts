@@ -45,4 +45,11 @@ describe("heroes", () => {
     expect(getHeroSystemPrompt("aquaman")).toContain("Aquaman")
     expect(getHeroSystemPrompt("cyborg")).toContain("Cyborg")
   })
+
+  it("uses high-resolution dc.com artwork urls", () => {
+    HERO_OPTIONS.forEach((hero) => {
+      expect(hero.imageUrl).toContain("https://static.dc.com/")
+      expect(hero.imageUrl).toContain("?w=1200")
+    })
+  })
 })

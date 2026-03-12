@@ -5,7 +5,7 @@ export const HERO_OPTIONS = [
     blurb: "Hopeful, calm protector with unwavering values.",
     tagline: "Rise Above The Storm",
     imageUrl:
-      "https://static.dc.com/2023-02/Char_WhosWho_Superman_20190116_5c3fc71f524f38.28405711.jpg",
+      "https://static.dc.com/2023-02/Char_WhosWho_Superman_20190116_5c3fc71f524f38.28405711.jpg?w=1200",
     fallbackImage: "/heroes/superman-fallback.svg",
     accent: "#45a6ff",
     overlayGradient:
@@ -17,7 +17,7 @@ export const HERO_OPTIONS = [
     blurb: "Strategic, intense detective from Gotham.",
     tagline: "Own The Night",
     imageUrl:
-      "https://static.dc.com/2023-02/Char_WhosWho_Batman_20190116_5c3fc4b40faf04.59002472.jpg",
+      "https://static.dc.com/2023-02/Char_WhosWho_Batman_20190116_5c3fc4b40faf04.59002472.jpg?w=1200",
     fallbackImage: "/heroes/batman-fallback.svg",
     accent: "#f0c15b",
     overlayGradient:
@@ -29,7 +29,7 @@ export const HERO_OPTIONS = [
     blurb: "Fearless warrior diplomat driven by truth and justice.",
     tagline: "Lead With Courage",
     imageUrl:
-      "https://static.dc.com/2023-02/Char_WhosWho_WonderWoman_20190116_5c3fc6aa51d124.25659603.jpg",
+      "https://static.dc.com/2023-02/Char_WhosWho_WonderWoman_20190116_5c3fc6aa51d124.25659603.jpg?w=1200",
     fallbackImage: "/heroes/superman-fallback.svg",
     accent: "#f64f4f",
     overlayGradient:
@@ -41,7 +41,7 @@ export const HERO_OPTIONS = [
     blurb: "Willpower-powered guardian who thrives under pressure.",
     tagline: "Will Is The Weapon",
     imageUrl:
-      "https://static.dc.com/2023-02/Char_WhosWho_GreenLantern20200721_5f173adcedb982.94529743.jpg",
+      "https://static.dc.com/2023-02/Char_WhosWho_GreenLantern20200721_5f173adcedb982.94529743.jpg?w=1200",
     fallbackImage: "/heroes/superman-fallback.svg",
     accent: "#38d66b",
     overlayGradient:
@@ -53,7 +53,7 @@ export const HERO_OPTIONS = [
     blurb: "Fastest man alive with relentless optimism and momentum.",
     tagline: "Outrun The Impossible",
     imageUrl:
-      "https://static.dc.com/2023-02/Char_WhosWho_Flash_20190116_5c3fcadbc6a963.74676553.jpg",
+      "https://static.dc.com/2023-02/Char_WhosWho_Flash_20190116_5c3fcadbc6a963.74676553.jpg?w=1200",
     fallbackImage: "/heroes/superman-fallback.svg",
     accent: "#ff9b1f",
     overlayGradient:
@@ -65,7 +65,7 @@ export const HERO_OPTIONS = [
     blurb: "Ocean-forged king balancing might, duty, and diplomacy.",
     tagline: "Rule The Depths",
     imageUrl:
-      "https://static.dc.com/2023-02/Char_WhosWho_Aquaman_5c411a95e710b9.62155274.jpg",
+      "https://static.dc.com/2023-02/Char_WhosWho_Aquaman_5c411a95e710b9.62155274.jpg?w=1200",
     fallbackImage: "/heroes/superman-fallback.svg",
     accent: "#2bd3ff",
     overlayGradient:
@@ -77,7 +77,7 @@ export const HERO_OPTIONS = [
     blurb: "Half human, half machine tactician connected to any system.",
     tagline: "Power Meets Precision",
     imageUrl:
-      "https://static.dc.com/2023-02/Char_WhosWho_Cyborg_20190116_5c3fcd9048a1a2.67778180.jpg",
+      "https://static.dc.com/2023-02/Char_WhosWho_Cyborg_20190116_5c3fcd9048a1a2.67778180.jpg?w=1200",
     fallbackImage: "/heroes/superman-fallback.svg",
     accent: "#ff5a4f",
     overlayGradient:
