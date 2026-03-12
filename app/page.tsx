@@ -61,6 +61,81 @@ type StoredMessage = {
   parts: UIMessage["parts"]
 }
 
+function formatChatError(error: unknown): string {
+  if (!error) {
+    return "Unknown error"
+  }
+
+  const tryParseJsonMessage = (message: string) => {
+    try {
+      const parsed = JSON.parse(message) as {
+        code?: string
+        message?: string
+      }
+
+      if (parsed?.code || parsed?.message) {
+        return `${parsed.code ?? "error"}: ${parsed.message ?? "Unknown error"}`
+      }
+    } catch {
+      // Keep raw message when not JSON.
+    }
+
+    return message
+  }
+
+  const readObjectMessage = (value: unknown): string | null => {
+    if (!value || typeof value !== "object") {
+      return null
+    }
+
+    const record = value as Record<string, unknown>
+    const code = typeof record.code === "string" ? record.code : null
+    const message = typeof record.message === "string" ? record.message : null
+
+    if (code || message) {
+      return `${code ?? "error"}: ${message ?? "Unknown error"}`
+    }
+
+    if (record.cause) {
+      const causeMessage = readObjectMessage(record.cause)
+      if (causeMessage) {
+        return causeMessage
+      }
+    }
+
+    return null
+  }
+
+  if (error instanceof Error) {
+    if (error.message?.trim()) {
+      return tryParseJsonMessage(error.message)
+    }
+
+    const withCause = error as Error & { cause?: unknown }
+    if (withCause.cause instanceof Error && withCause.cause.message) {
+      return withCause.cause.message
+    }
+
+    const objectMessage = readObjectMessage(withCause.cause)
+    if (objectMessage) {
+      return objectMessage
+    }
+
+    return error.name || "Unknown error"
+  }
+
+  const objectMessage = readObjectMessage(error)
+  if (objectMessage) {
+    return objectMessage
+  }
+
+  if (typeof error === "string" && error.trim()) {
+    return tryParseJsonMessage(error)
+  }
+
+  return "Unknown error"
+}
+
 async function listChats(userId: string) {
   const response = await fetch("/api/chats", {
     headers: buildChatHeaders(userId),
@@ -115,8 +190,14 @@ export default function Page() {
     string | null
   >(null)
   const [isBootstrapping, setIsBootstrapping] = useState(true)
+  const [chatErrorDetails, setChatErrorDetails] = useState<string | null>(null)
 
-  const { messages, setMessages, sendMessage, status, stop, error } = useChat()
+  const { messages, setMessages, sendMessage, status, stop, error } = useChat({
+    onError: (chatError) => {
+      console.error("[chat-ui-error]", chatError)
+      setChatErrorDetails(formatChatError(chatError))
+    },
+  })
 
   const isSending = status === "submitted" || status === "streaming"
   const canSubmit = Boolean(
@@ -130,6 +211,21 @@ export default function Page() {
       return items
     },
     [setConversations]
+  )
+
+  const hydrateConversationMessages = useCallback(
+    async (nextUserId: string, conversationId: string) => {
+      const storedMessages = await loadMessages(nextUserId, conversationId)
+
+      setMessages(
+        storedMessages.map((message) => ({
+          id: message.id,
+          role: message.role,
+          parts: message.parts,
+        }))
+      )
+    },
+    [setMessages]
   )
 
   useEffect(() => {
@@ -185,19 +281,11 @@ export default function Page() {
 
     let active = true
 
-    loadMessages(userId, selectedConversationId)
-      .then((storedMessages) => {
+    hydrateConversationMessages(userId, selectedConversationId)
+      .then(() => {
         if (!active) {
           return
         }
-
-        setMessages(
-          storedMessages.map((message) => ({
-            id: message.id,
-            role: message.role,
-            parts: message.parts,
-          }))
-        )
       })
       .catch((loadError) => {
         console.error(loadError)
@@ -206,7 +294,7 @@ export default function Page() {
     return () => {
       active = false
     }
-  }, [selectedConversationId, setMessages, userId])
+  }, [hydrateConversationMessages, selectedConversationId, userId])
 
   const selectedConversationLabel = useMemo(() => {
     return conversations.find(
@@ -271,11 +359,13 @@ export default function Page() {
             </p>
           </header>
 
-          {error ? (
+          {error || chatErrorDetails ? (
             <Alert variant="destructive">
               <AlertCircleIcon className="size-4" />
               <AlertTitle>Chat request failed</AlertTitle>
-              <AlertDescription>{error.message}</AlertDescription>
+              <AlertDescription>
+                {chatErrorDetails ?? formatChatError(error)}
+              </AlertDescription>
             </Alert>
           ) : null}
 
@@ -329,19 +419,35 @@ export default function Page() {
                 return
               }
 
-              await sendMessage(
-                { text: trimmed },
-                {
-                  headers: buildChatHeaders(userId),
-                  body: {
-                    model,
-                    conversationId: selectedConversationId,
-                    clientMessageId: createClientMessageId(),
-                  },
-                }
-              )
+              setChatErrorDetails(null)
 
-              await refreshConversations(userId)
+              try {
+                await sendMessage(
+                  { text: trimmed },
+                  {
+                    headers: buildChatHeaders(userId),
+                    body: {
+                      model,
+                      conversationId: selectedConversationId,
+                      clientMessageId: createClientMessageId(),
+                    },
+                  }
+                )
+
+                await refreshConversations(userId)
+                await hydrateConversationMessages(
+                  userId,
+                  selectedConversationId
+                )
+              } catch (sendError) {
+                console.error("[chat-send-error]", sendError)
+                setChatErrorDetails(formatChatError(sendError))
+
+                await hydrateConversationMessages(
+                  userId,
+                  selectedConversationId
+                )
+              }
             }}
           >
             <PromptInputBody>

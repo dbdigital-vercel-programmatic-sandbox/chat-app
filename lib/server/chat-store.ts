@@ -191,6 +191,7 @@ export async function saveUserMessageIdempotent({
     insert into messages (conversation_id, client_message_id, role, parts)
     values (${conversationId}, ${clientMessageId}, 'user', ${JSON.stringify(parts)}::jsonb)
     on conflict (conversation_id, client_message_id)
+    where client_message_id is not null
     do update set parts = excluded.parts
   `
 }
@@ -221,6 +222,7 @@ export async function saveAssistantMessageIdempotent({
       ${JSON.stringify([{ type: "text", text: trimmed }])}::jsonb
     )
     on conflict (conversation_id, client_message_id)
+    where client_message_id is not null
     do update set parts = excluded.parts
   `
 }
