@@ -15,4 +15,11 @@ describe("chat layout simplification", () => {
     expect(pageSource).toContain("bg-black/75")
     expect(pageSource).not.toContain("Cinematic mode")
   })
+
+  it("keeps desktop sidebar height synced with main content", () => {
+    const pageSource = readFileSync("app/page.tsx", "utf8")
+
+    expect(pageSource).toContain("h-full min-h-[84svh] flex-col")
+    expect(pageSource).not.toContain("relative flex h-[84svh] flex-col")
+  })
 })

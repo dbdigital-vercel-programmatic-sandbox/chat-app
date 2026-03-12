@@ -525,8 +525,8 @@ export default function Page() {
 
   return (
     <main className="cinematic-bg mx-auto flex min-h-svh w-full max-w-6xl gap-4 px-4 py-6 md:px-8">
-      <aside className="hidden w-80 shrink-0 md:block">
-        <div className="relative flex h-[84svh] flex-col overflow-hidden rounded-2xl border border-white/15 bg-black/75 text-white">
+      <aside className="hidden w-80 shrink-0 md:block md:self-stretch">
+        <div className="relative flex h-full min-h-[84svh] flex-col overflow-hidden rounded-2xl border border-white/15 bg-black/75 text-white">
           {selectedHeroMeta ? (
             <Image
               alt={`${selectedHeroMeta.label} sidebar`}
