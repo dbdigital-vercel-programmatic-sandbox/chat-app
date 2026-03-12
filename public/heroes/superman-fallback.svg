@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1200" role="img" aria-label="Superman fallback poster">
+  <defs>
+    <linearGradient id="su-bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#071934" />
+      <stop offset="100%" stop-color="#0a0c16" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1200" fill="url(#su-bg)" />
+  <circle cx="400" cy="510" r="240" fill="#45a6ff" opacity="0.3" />
+  <path d="M280 400h240l-30 120H310z" fill="#ffd35b" opacity="0.92" />
+  <path d="M330 440h140l-15 60h-110z" fill="#d6222a" />
+  <path d="M320 520h160l-70 300h-20z" fill="#111824" stroke="#90d4ff" stroke-opacity="0.5" stroke-width="10" />
+  <text x="45" y="1070" fill="#c6e8ff" fill-opacity="0.95" font-family="Arial, sans-serif" font-size="78" font-weight="700">SUPERMAN</text>
+</svg>

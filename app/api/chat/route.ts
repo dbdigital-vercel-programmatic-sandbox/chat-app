@@ -6,9 +6,10 @@ import {
 } from "ai"
 
 import { DEFAULT_CHAT_MODEL, isSupportedChatModel } from "@/lib/chat-models"
+import { getHeroSystemPrompt } from "@/lib/heroes"
 import {
-  conversationExistsForUser,
   extractLatestUserMessageParts,
+  getConversationHeroForUser,
   isValidClientMessageId,
   isUuidV4,
   parseChatUserId,
@@ -107,11 +108,11 @@ export async function POST(request: Request) {
       )
     }
 
-    const ownsConversation = await conversationExistsForUser(
+    const conversationHero = await getConversationHeroForUser(
       userId,
       conversationId
     )
-    if (!ownsConversation) {
+    if (conversationHero === undefined) {
       return Response.json(
         {
           code: "conversation_not_found",
@@ -119,6 +120,17 @@ export async function POST(request: Request) {
           retryable: false,
         },
         { status: 404 }
+      )
+    }
+
+    if (conversationHero === null) {
+      return Response.json(
+        {
+          code: "conversation_hero_unsupported",
+          message: "Conversation hero is missing or unsupported",
+          retryable: false,
+        },
+        { status: 409 }
       )
     }
 
@@ -147,9 +159,20 @@ export async function POST(request: Request) {
         ? body.model
         : DEFAULT_CHAT_MODEL
 
+      const messagesWithSystemPrompt: UIMessage[] = [
+        {
+          id: `system:${conversationId}`,
+          role: "system",
+          parts: [
+            { type: "text", text: getHeroSystemPrompt(conversationHero) },
+          ],
+        },
+        ...(body.messages ?? []),
+      ]
+
       const result = streamText({
         model: gateway(model),
-        messages: await convertToModelMessages(body.messages ?? []),
+        messages: await convertToModelMessages(messagesWithSystemPrompt),
         onFinish: async ({ text }) => {
           await saveAssistantMessageIdempotent({
             conversationId,
