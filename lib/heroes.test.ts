@@ -8,18 +8,26 @@ import {
 } from "./heroes"
 
 describe("heroes", () => {
-  it("supports the three allowed heroes", () => {
+  it("supports the justice league hero roster", () => {
     expect(HERO_OPTIONS.map((hero) => hero.id)).toEqual([
-      "spiderman",
-      "batman",
       "superman",
+      "batman",
+      "wonder-woman",
+      "green-lantern",
+      "the-flash",
+      "aquaman",
+      "cyborg",
     ])
   })
 
   it("parses supported hero values", () => {
-    expect(parseHero("spiderman")).toBe("spiderman")
-    expect(parseHero("batman")).toBe("batman")
     expect(parseHero("superman")).toBe("superman")
+    expect(parseHero("batman")).toBe("batman")
+    expect(parseHero("wonder-woman")).toBe("wonder-woman")
+    expect(parseHero("green-lantern")).toBe("green-lantern")
+    expect(parseHero("the-flash")).toBe("the-flash")
+    expect(parseHero("aquaman")).toBe("aquaman")
+    expect(parseHero("cyborg")).toBe("cyborg")
   })
 
   it("rejects unsupported hero values", () => {
@@ -29,8 +37,12 @@ describe("heroes", () => {
   })
 
   it("returns a distinct system prompt for each hero", () => {
-    expect(getHeroSystemPrompt("spiderman")).toContain("Spider-Man")
-    expect(getHeroSystemPrompt("batman")).toContain("Batman")
     expect(getHeroSystemPrompt("superman")).toContain("Superman")
+    expect(getHeroSystemPrompt("batman")).toContain("Batman")
+    expect(getHeroSystemPrompt("wonder-woman")).toContain("Wonder Woman")
+    expect(getHeroSystemPrompt("green-lantern")).toContain("Green Lantern")
+    expect(getHeroSystemPrompt("the-flash")).toContain("The Flash")
+    expect(getHeroSystemPrompt("aquaman")).toContain("Aquaman")
+    expect(getHeroSystemPrompt("cyborg")).toContain("Cyborg")
   })
 })
