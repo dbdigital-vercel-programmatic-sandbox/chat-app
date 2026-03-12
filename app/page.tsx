@@ -4,6 +4,7 @@ import { useChat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import {
   AlertCircleIcon,
+  ArrowLeftIcon,
   BotIcon,
   MessageSquareIcon,
   PlusIcon,
@@ -47,10 +48,12 @@ import {
   DEFAULT_CHAT_MODEL,
   type ChatModelId,
 } from "@/lib/chat-models"
+import { HERO_OPTIONS, type HeroId } from "@/lib/heroes"
 
 type ConversationRecord = {
   id: string
   title: string
+  hero: HeroId | null
   createdAt: string
   updatedAt: string
 }
@@ -136,8 +139,8 @@ function formatChatError(error: unknown): string {
   return "Unknown error"
 }
 
-async function listChats(userId: string) {
-  const response = await fetch("/api/chats", {
+async function listChats(userId: string, hero: HeroId) {
+  const response = await fetch(`/api/chats?hero=${hero}`, {
     headers: buildChatHeaders(userId),
     cache: "no-store",
   })
@@ -152,10 +155,14 @@ async function listChats(userId: string) {
   return payload.conversations
 }
 
-async function createChat(userId: string) {
+async function createChat(userId: string, hero: HeroId) {
   const response = await fetch("/api/chats", {
     method: "POST",
-    headers: buildChatHeaders(userId),
+    headers: {
+      ...buildChatHeaders(userId),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ hero }),
   })
 
   if (!response.ok) {
@@ -185,6 +192,7 @@ async function loadMessages(userId: string, chatId: string) {
 export default function Page() {
   const [model, setModel] = useState<ChatModelId>(DEFAULT_CHAT_MODEL)
   const [userId, setUserId] = useState<string | null>(null)
+  const [selectedHero, setSelectedHero] = useState<HeroId | null>(null)
   const [conversations, setConversations] = useState<ConversationRecord[]>([])
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
@@ -201,12 +209,12 @@ export default function Page() {
 
   const isSending = status === "submitted" || status === "streaming"
   const canSubmit = Boolean(
-    userId && selectedConversationId && !isBootstrapping
+    userId && selectedConversationId && selectedHero && !isBootstrapping
   )
 
   const refreshConversations = useCallback(
-    async (nextUserId: string) => {
-      const items = await listChats(nextUserId)
+    async (nextUserId: string, hero: HeroId) => {
+      const items = await listChats(nextUserId, hero)
       setConversations(items)
       return items
     },
@@ -238,25 +246,6 @@ export default function Page() {
       }
 
       setUserId(nextUserId)
-
-      const items = await listChats(nextUserId)
-      if (!active) {
-        return
-      }
-
-      if (items.length > 0) {
-        setConversations(items)
-        setSelectedConversationId(items[0].id)
-        return
-      }
-
-      const createdConversation = await createChat(nextUserId)
-      if (!active) {
-        return
-      }
-
-      setConversations([createdConversation])
-      setSelectedConversationId(createdConversation.id)
     }
 
     bootstrap()
@@ -273,6 +262,39 @@ export default function Page() {
       active = false
     }
   }, [])
+
+  const selectHero = useCallback(
+    async (hero: HeroId) => {
+      if (!userId) {
+        return
+      }
+
+      setChatErrorDetails(null)
+      setIsBootstrapping(true)
+      setMessages([])
+      setSelectedConversationId(null)
+      setConversations([])
+
+      try {
+        const items = await listChats(userId, hero)
+
+        if (items.length > 0) {
+          setConversations(items)
+          setSelectedConversationId(items[0].id)
+          setSelectedHero(hero)
+          return
+        }
+
+        const createdConversation = await createChat(userId, hero)
+        setConversations([createdConversation])
+        setSelectedConversationId(createdConversation.id)
+        setSelectedHero(hero)
+      } finally {
+        setIsBootstrapping(false)
+      }
+    },
+    [userId, setMessages]
+  )
 
   useEffect(() => {
     if (!userId || !selectedConversationId) {
@@ -302,22 +324,81 @@ export default function Page() {
     )?.title
   }, [conversations, selectedConversationId])
 
+  if (!selectedHero) {
+    return (
+      <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-4 px-4 py-6 md:px-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Chat with your superhero</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Pick who you want to chat with.
+            </p>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-3">
+            {HERO_OPTIONS.map((hero) => (
+              <Button
+                className="h-auto flex-col items-start gap-2 p-4 text-left"
+                disabled={!userId || isBootstrapping}
+                key={hero.id}
+                onClick={() => {
+                  selectHero(hero.id).catch((error) => {
+                    console.error(error)
+                    setChatErrorDetails(formatChatError(error))
+                    setIsBootstrapping(false)
+                  })
+                }}
+                variant="outline"
+              >
+                <span className="text-base font-semibold">{hero.label}</span>
+                <span className="text-xs text-muted-foreground">
+                  {hero.blurb}
+                </span>
+              </Button>
+            ))}
+          </CardContent>
+        </Card>
+
+        {chatErrorDetails ? (
+          <Alert variant="destructive">
+            <AlertCircleIcon className="size-4" />
+            <AlertTitle>Could not load hero chat</AlertTitle>
+            <AlertDescription>{chatErrorDetails}</AlertDescription>
+          </Alert>
+        ) : null}
+      </main>
+    )
+  }
+
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:px-8">
       <Card className="w-full md:w-72 md:shrink-0">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Conversations</CardTitle>
+          <Button
+            className="mt-2 w-fit"
+            onClick={() => {
+              setSelectedHero(null)
+              setConversations([])
+              setSelectedConversationId(null)
+              setMessages([])
+            }}
+            size="sm"
+            variant="ghost"
+          >
+            <ArrowLeftIcon className="size-4" />
+            Heroes
+          </Button>
         </CardHeader>
         <CardContent className="space-y-3">
           <Button
             className="w-full"
-            disabled={!userId || isBootstrapping}
+            disabled={!userId || isBootstrapping || !selectedHero}
             onClick={async () => {
-              if (!userId) {
+              if (!userId || !selectedHero) {
                 return
               }
 
-              const conversation = await createChat(userId)
+              const conversation = await createChat(userId, selectedHero)
               setConversations((previous) => [conversation, ...previous])
               setSelectedConversationId(conversation.id)
               setMessages([])
@@ -352,7 +433,8 @@ export default function Page() {
         <CardContent className="flex min-h-0 flex-1 flex-col gap-3 p-3 md:p-4">
           <header className="space-y-1 pb-2">
             <h1 className="text-2xl font-semibold tracking-tight">
-              AI Chat App
+              Chat with{" "}
+              {HERO_OPTIONS.find((hero) => hero.id === selectedHero)?.label}
             </h1>
             <p className="text-sm text-muted-foreground">
               {selectedConversationLabel ?? "Loading conversation..."}
@@ -434,7 +516,7 @@ export default function Page() {
                   }
                 )
 
-                await refreshConversations(userId)
+                await refreshConversations(userId, selectedHero)
                 await hydrateConversationMessages(
                   userId,
                   selectedConversationId

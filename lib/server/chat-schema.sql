@@ -9,9 +9,13 @@ create table if not exists conversations (
   id uuid primary key default gen_random_uuid(),
   user_id text not null references chat_users(id) on delete cascade,
   title text not null,
+  hero text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table conversations
+  add column if not exists hero text;
 
 create table if not exists messages (
   id uuid primary key default gen_random_uuid(),
@@ -25,6 +29,9 @@ create table if not exists messages (
 
 create index if not exists conversations_user_updated_idx
   on conversations (user_id, updated_at desc);
+
+create index if not exists conversations_user_hero_updated_idx
+  on conversations (user_id, hero, updated_at desc);
 
 create index if not exists messages_conversation_created_idx
   on messages (conversation_id, created_at asc);

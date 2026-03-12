@@ -1,9 +1,12 @@
 import { neon } from "@neondatabase/serverless"
 import type { UIMessage } from "ai"
 
+import { type HeroId, isSupportedHero } from "../heroes"
+
 export type ConversationRecord = {
   id: string
   title: string
+  hero: HeroId | null
   createdAt: string
   updatedAt: string
 }
@@ -75,18 +78,30 @@ export async function ensureChatUser(userId: string) {
 }
 
 export async function listConversations(
-  userId: string
+  userId: string,
+  hero?: HeroId
 ): Promise<ConversationRecord[]> {
   const sql = getSqlClient()
 
-  const rows = (await sql`
-    select id, title, created_at, updated_at
-    from conversations
-    where user_id = ${userId}
-    order by updated_at desc
-  `) as Array<{
+  const rows = (
+    hero
+      ? await sql`
+        select id, title, hero, created_at, updated_at
+        from conversations
+        where user_id = ${userId}
+          and hero = ${hero}
+        order by updated_at desc
+      `
+      : await sql`
+        select id, title, hero, created_at, updated_at
+        from conversations
+        where user_id = ${userId}
+        order by updated_at desc
+      `
+  ) as Array<{
     id: string
     title: string
+    hero: string | null
     created_at: string
     updated_at: string
   }>
@@ -94,26 +109,30 @@ export async function listConversations(
   return rows.map((row) => ({
     id: row.id,
     title: row.title,
+    hero: isSupportedHero(row.hero) ? row.hero : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }))
 }
 
 export async function createConversation(
-  userId: string
+  userId: string,
+  hero: HeroId
 ): Promise<ConversationRecord> {
   const sql = getSqlClient()
 
   const [row] = (await sql`
-    insert into conversations (user_id, title)
+    insert into conversations (user_id, title, hero)
     values (
       ${userId},
-      ${createUtcConversationTitle()}
+      ${createUtcConversationTitle()},
+      ${hero}
     )
-    returning id, title, created_at, updated_at
+    returning id, title, hero, created_at, updated_at
   `) as Array<{
     id: string
     title: string
+    hero: string | null
     created_at: string
     updated_at: string
   }>
@@ -121,9 +140,30 @@ export async function createConversation(
   return {
     id: row.id,
     title: row.title,
+    hero: isSupportedHero(row.hero) ? row.hero : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
+}
+
+export async function getConversationHeroForUser(
+  userId: string,
+  conversationId: string
+): Promise<HeroId | null | undefined> {
+  const sql = getSqlClient()
+
+  const [row] = (await sql`
+    select hero
+    from conversations
+    where id = ${conversationId}
+      and user_id = ${userId}
+  `) as Array<{ hero: string | null }>
+
+  if (!row) {
+    return undefined
+  }
+
+  return isSupportedHero(row.hero) ? row.hero : null
 }
 
 export async function conversationExistsForUser(
