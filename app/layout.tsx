@@ -1,4 +1,4 @@
-import { Cinzel, Geist_Mono, Manrope } from "next/font/google"
+import { Bebas_Neue, Geist_Mono, Manrope } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -11,10 +11,11 @@ const manrope = Manrope({
   display: "swap",
 })
 
-const cinzel = Cinzel({
+const bebasNeue = Bebas_Neue({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
+  weight: "400",
 })
 
 const fontMono = Geist_Mono({
@@ -36,7 +37,7 @@ export default function RootLayout({
         fontMono.variable,
         "font-sans",
         manrope.variable,
-        cinzel.variable
+        bebasNeue.variable
       )}
     >
       <body>
