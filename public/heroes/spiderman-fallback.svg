@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1200" role="img" aria-label="Spider-Man fallback poster">
+  <defs>
+    <linearGradient id="sp-bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#2c0308" />
+      <stop offset="100%" stop-color="#090a10" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1200" fill="url(#sp-bg)" />
+  <circle cx="400" cy="540" r="230" fill="#bc1221" opacity="0.35" />
+  <path d="M250 350h300l-80 430H330z" fill="#11141b" stroke="#f2f5ff" stroke-opacity="0.45" stroke-width="10" />
+  <path d="M310 470h180M300 550h200M285 635h230" stroke="#f5f7ff" stroke-opacity="0.4" stroke-width="7" />
+  <text x="70" y="1070" fill="#ffffff" fill-opacity="0.9" font-family="Arial, sans-serif" font-size="82" font-weight="700">SPIDER-MAN</text>
+</svg>

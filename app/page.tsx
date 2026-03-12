@@ -2,10 +2,12 @@
 
 import { useChat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
+import Image from "next/image"
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
   BotIcon,
+  CrownIcon,
   MessageSquareIcon,
   PlusIcon,
 } from "lucide-react"
@@ -48,7 +50,13 @@ import {
   DEFAULT_CHAT_MODEL,
   type ChatModelId,
 } from "@/lib/chat-models"
-import { HERO_OPTIONS, type HeroId } from "@/lib/heroes"
+import {
+  createHeroImageState,
+  nextHeroImageState,
+  type HeroImageState,
+} from "@/lib/hero-image-state"
+import { getHeroById, HERO_OPTIONS, type HeroId } from "@/lib/heroes"
+import { cn } from "@/lib/utils"
 
 type ConversationRecord = {
   id: string
@@ -62,6 +70,18 @@ type StoredMessage = {
   id: string
   role: "user" | "assistant" | "system"
   parts: UIMessage["parts"]
+}
+
+const IMAGE_TIMEOUT_MS = 8_000
+
+function createInitialHeroImageStates(): Record<HeroId, HeroImageState> {
+  return HERO_OPTIONS.reduce(
+    (accumulator, hero) => {
+      accumulator[hero.id] = createHeroImageState()
+      return accumulator
+    },
+    {} as Record<HeroId, HeroImageState>
+  )
 }
 
 function formatChatError(error: unknown): string {
@@ -193,6 +213,9 @@ export default function Page() {
   const [model, setModel] = useState<ChatModelId>(DEFAULT_CHAT_MODEL)
   const [userId, setUserId] = useState<string | null>(null)
   const [selectedHero, setSelectedHero] = useState<HeroId | null>(null)
+  const [heroImageStates, setHeroImageStates] = useState<
+    Record<HeroId, HeroImageState>
+  >(() => createInitialHeroImageStates())
   const [conversations, setConversations] = useState<ConversationRecord[]>([])
   const [selectedConversationId, setSelectedConversationId] = useState<
     string | null
@@ -324,20 +347,74 @@ export default function Page() {
     )?.title
   }, [conversations, selectedConversationId])
 
+  const selectedHeroMeta = useMemo(() => {
+    return selectedHero ? getHeroById(selectedHero) : null
+  }, [selectedHero])
+
+  useEffect(() => {
+    const timeoutIds = HERO_OPTIONS.map((hero) => {
+      if (heroImageStates[hero.id].status !== "loading") {
+        return null
+      }
+
+      return window.setTimeout(() => {
+        setHeroImageStates((current) => ({
+          ...current,
+          [hero.id]: nextHeroImageState(current[hero.id], "timeout"),
+        }))
+      }, IMAGE_TIMEOUT_MS)
+    })
+
+    return () => {
+      timeoutIds.forEach((timeoutId) => {
+        if (timeoutId !== null) {
+          window.clearTimeout(timeoutId)
+        }
+      })
+    }
+  }, [heroImageStates])
+
+  const setHeroImageEvent = useCallback(
+    (heroId: HeroId, event: "load" | "error") => {
+      setHeroImageStates((current) => ({
+        ...current,
+        [heroId]: nextHeroImageState(current[heroId], event),
+      }))
+    },
+    []
+  )
+
   if (!selectedHero) {
     return (
-      <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-4 px-4 py-6 md:px-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl">Chat with your superhero</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Pick who you want to chat with.
-            </p>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-3">
-            {HERO_OPTIONS.map((hero) => (
-              <Button
-                className="h-auto flex-col items-start gap-2 p-4 text-left"
+      <main className="cinematic-bg mx-auto flex min-h-svh w-full max-w-6xl flex-col gap-6 px-4 py-8 md:px-8 md:py-10">
+        <header className="relative overflow-hidden rounded-3xl border border-white/15 bg-black/35 p-6 backdrop-blur-sm md:p-9">
+          <p className="text-xs tracking-[0.32em] text-white/70 uppercase">
+            Superhero Chat
+          </p>
+          <h1 className="mt-3 [font-family:var(--font-display)] text-4xl font-semibold tracking-tight text-white md:text-6xl">
+            Choose Your Champion
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm text-white/70 md:text-base">
+            Enter a cinematic chat experience with your hero. Each profile has a
+            custom visual atmosphere and personality.
+          </p>
+        </header>
+
+        <section className="grid gap-5 md:grid-cols-3">
+          {HERO_OPTIONS.map((hero) => {
+            const imageState = heroImageStates[hero.id]
+            const imageSrc =
+              imageState.status === "failed"
+                ? hero.fallbackImage
+                : hero.imageUrl
+
+            return (
+              <button
+                className={cn(
+                  "group relative isolate h-[29rem] overflow-hidden rounded-3xl border border-white/20 text-left transition duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:outline-none md:h-[32rem]",
+                  "hover:-translate-y-1.5 hover:scale-[1.02] hover:border-white/40",
+                  "disabled:cursor-not-allowed disabled:opacity-60"
+                )}
                 disabled={!userId || isBootstrapping}
                 key={hero.id}
                 onClick={() => {
@@ -347,16 +424,51 @@ export default function Page() {
                     setIsBootstrapping(false)
                   })
                 }}
-                variant="outline"
+                type="button"
               >
-                <span className="text-base font-semibold">{hero.label}</span>
-                <span className="text-xs text-muted-foreground">
-                  {hero.blurb}
-                </span>
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
+                <Image
+                  alt={hero.label}
+                  className="object-cover transition duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.04] motion-reduce:transform-none"
+                  fill
+                  onError={() => setHeroImageEvent(hero.id, "error")}
+                  onLoad={() => setHeroImageEvent(hero.id, "load")}
+                  priority
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  src={imageSrc}
+                />
+
+                <div
+                  className="absolute inset-0"
+                  style={{ background: hero.overlayGradient }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/10" />
+                <div
+                  className="absolute inset-0 opacity-0 transition duration-200 group-hover:opacity-100"
+                  style={{ boxShadow: `inset 0 0 160px ${hero.accent}66` }}
+                />
+
+                <div className="absolute bottom-0 z-10 w-full p-5 md:p-6">
+                  <p className="text-xs tracking-[0.3em] text-white/65 uppercase">
+                    {hero.tagline}
+                  </p>
+                  <h2 className="mt-2 [font-family:var(--font-display)] text-3xl font-semibold text-white">
+                    {hero.label}
+                  </h2>
+                  <p className="mt-2 text-sm text-white/75">{hero.blurb}</p>
+                  <p className="mt-4 text-xs tracking-[0.24em] text-white/85 uppercase">
+                    Enter Chat
+                  </p>
+
+                  {imageState.status === "failed" ? (
+                    <p className="mt-3 text-xs text-white/70">
+                      Using fallback artwork due to network/image error.
+                    </p>
+                  ) : null}
+                </div>
+              </button>
+            )
+          })}
+        </section>
 
         {chatErrorDetails ? (
           <Alert variant="destructive">
@@ -370,12 +482,14 @@ export default function Page() {
   }
 
   return (
-    <main className="mx-auto flex min-h-svh w-full max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:px-8">
-      <Card className="w-full md:w-72 md:shrink-0">
+    <main className="cinematic-bg mx-auto flex min-h-svh w-full max-w-6xl flex-col gap-4 px-4 py-6 md:flex-row md:px-8">
+      <Card className="w-full border-white/15 bg-black/45 text-white backdrop-blur-sm md:w-80 md:shrink-0">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Conversations</CardTitle>
+          <CardTitle className="text-base tracking-wide text-white/90 uppercase">
+            Mission Log
+          </CardTitle>
           <Button
-            className="mt-2 w-fit"
+            className="mt-2 w-fit border-white/20 bg-white/5 text-white hover:bg-white/12"
             onClick={() => {
               setSelectedHero(null)
               setConversations([])
@@ -383,7 +497,7 @@ export default function Page() {
               setMessages([])
             }}
             size="sm"
-            variant="ghost"
+            variant="outline"
           >
             <ArrowLeftIcon className="size-4" />
             Heroes
@@ -391,7 +505,7 @@ export default function Page() {
         </CardHeader>
         <CardContent className="space-y-3">
           <Button
-            className="w-full"
+            className="w-full border-white/25 bg-white/10 text-white hover:bg-white/20"
             disabled={!userId || isBootstrapping || !selectedHero}
             onClick={async () => {
               if (!userId || !selectedHero) {
@@ -415,10 +529,15 @@ export default function Page() {
 
               return (
                 <Button
-                  className="justify-start truncate"
+                  className={cn(
+                    "justify-start truncate border border-transparent text-white/90",
+                    isActive
+                      ? "border-white/25 bg-white/20 text-white"
+                      : "bg-transparent hover:bg-white/10"
+                  )}
                   key={conversation.id}
                   onClick={() => setSelectedConversationId(conversation.id)}
-                  variant={isActive ? "default" : "ghost"}
+                  variant="ghost"
                 >
                   <MessageSquareIcon className="size-4" />
                   <span className="truncate">{conversation.title}</span>
@@ -429,14 +548,43 @@ export default function Page() {
         </CardContent>
       </Card>
 
-      <Card className="flex min-h-[72svh] flex-1 flex-col">
+      <Card className="flex min-h-[72svh] flex-1 flex-col overflow-hidden border-white/15 bg-black/55 backdrop-blur-sm">
         <CardContent className="flex min-h-0 flex-1 flex-col gap-3 p-3 md:p-4">
-          <header className="space-y-1 pb-2">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Chat with{" "}
-              {HERO_OPTIONS.find((hero) => hero.id === selectedHero)?.label}
-            </h1>
-            <p className="text-sm text-muted-foreground">
+          <header className="relative overflow-hidden rounded-2xl border border-white/15 p-4 md:p-6">
+            {selectedHeroMeta ? (
+              <Image
+                alt={`${selectedHeroMeta.label} banner`}
+                className="object-cover"
+                fill
+                onError={() => setHeroImageEvent(selectedHeroMeta.id, "error")}
+                onLoad={() => setHeroImageEvent(selectedHeroMeta.id, "load")}
+                sizes="(max-width: 768px) 100vw, 70vw"
+                src={
+                  heroImageStates[selectedHeroMeta.id].status === "failed"
+                    ? selectedHeroMeta.fallbackImage
+                    : selectedHeroMeta.imageUrl
+                }
+              />
+            ) : null}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/35" />
+            <div className="relative z-10 flex items-center justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-xs tracking-[0.26em] text-white/70 uppercase">
+                  Active Hero
+                </p>
+                <h1 className="[font-family:var(--font-display)] text-2xl font-semibold tracking-tight text-white md:text-3xl">
+                  Chat with {selectedHeroMeta?.label}
+                </h1>
+                <p className="text-xs text-white/70 md:text-sm">
+                  {selectedHeroMeta?.tagline}
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs text-white">
+                <CrownIcon className="size-3" />
+                Cinematic mode
+              </span>
+            </div>
+            <p className="relative z-10 mt-3 text-sm text-white/75">
               {selectedConversationLabel ?? "Loading conversation..."}
             </p>
           </header>

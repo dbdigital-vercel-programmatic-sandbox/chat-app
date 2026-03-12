@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1200" role="img" aria-label="Batman fallback poster">
+  <defs>
+    <linearGradient id="bt-bg" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#101217" />
+      <stop offset="100%" stop-color="#050607" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1200" fill="url(#bt-bg)" />
+  <circle cx="400" cy="540" r="260" fill="#f0c15b" opacity="0.2" />
+  <path d="M190 500l100-120 70 70h80l70-70 100 120-40 35-35-35v240H265V500l-35 35z" fill="#08090c" stroke="#f3d38a" stroke-opacity="0.45" stroke-width="10" />
+  <path d="M250 430l150 90 150-90" fill="none" stroke="#f3d38a" stroke-opacity="0.4" stroke-width="9" />
+  <text x="95" y="1070" fill="#f6dfab" fill-opacity="0.92" font-family="Arial, sans-serif" font-size="86" font-weight="700">BATMAN</text>
+</svg>
