@@ -17,5 +17,20 @@ This will place the ui components in the `components` directory.
 To use the components in your app, import them as follows:
 
 ```tsx
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button"
+```
+
+## Environment variables
+
+To persist chat history in Neon, configure:
+
+```bash
+DATABASE_URL=postgres://...
+SHARED_AI_GATEWAY_API_KEY=...
+```
+
+Apply DB schema once with:
+
+```bash
+psql "$DATABASE_URL" -f lib/server/chat-schema.sql
 ```
